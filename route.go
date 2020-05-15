@@ -3,34 +3,26 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
-)
 
-// Post is the model for posts
-type Post struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
-	Text  string `json:"text"`
-}
+	"github.com/proishan11/mux-rest/models"
+	"github.com/proishan11/mux-rest/repository"
+)
 
 var (
-	posts []Post
+	repo repository.PostRepo = repository.NewPostRepo()
 )
-
-// initializes repository
-func init() {
-	posts = []Post{
-		Post{
-			ID:    1,
-			Title: "Sample title",
-			Text:  "Sample Text",
-		},
-	}
-}
 
 // handler function for posts get request
 func getPosts(response http.ResponseWriter, req *http.Request) {
 	response.Header().Set("Content-type", "application/json")
+	posts, err := repo.FindAll()
+	if err != nil {
+		log.Println("Error occurred while fetching the post")
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"error": "Error occurred while fetching the posts"}`))
+	}
 	result, err := json.Marshal(posts)
 	if err != nil {
 		log.Println("Error occured while marshalling posts")
@@ -46,7 +38,7 @@ func getPosts(response http.ResponseWriter, req *http.Request) {
 
 func addPost(response http.ResponseWriter, req *http.Request) {
 	response.Header().Set("Content-type", "application/json")
-	var post Post
+	var post models.Post
 	err := json.NewDecoder(req.Body).Decode(&post)
 	if err != nil {
 		log.Println("Error occurred while unmarshalling the request")
@@ -55,9 +47,18 @@ func addPost(response http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	post.ID = len(posts) + 1
-	posts = append(posts, post)
-	result, err := json.Marshal(post)
+	// need to fix this
+	post.ID = rand.Int63()
+	result, err := repo.Save(&post)
+
+	if err != nil {
+		log.Println("Error occurred while adding the post")
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"error": "Error occurred while adding the post"}`))
+		return
+	}
+
+	ret, err := json.Marshal(result)
 	if err != nil {
 		log.Println("Error occurred while marshalling the response")
 		response.WriteHeader(http.StatusInternalServerError)
@@ -65,5 +66,5 @@ func addPost(response http.ResponseWriter, req *http.Request) {
 	}
 
 	response.WriteHeader(http.StatusOK)
-	response.Write(result)
+	response.Write(ret)
 }
