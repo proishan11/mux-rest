@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	repo repository.PostRepo = repository.NewPostRepo()
+	repo repository.PostRepo = repository.NewFirestoreRepo()
 )
 
 // handler function for posts get request
