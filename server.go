@@ -2,22 +2,31 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/proishan11/mux-rest/repository"
+
+	"github.com/proishan11/mux-rest/service"
+
+	"github.com/proishan11/mux-rest/controller"
+
+	"github.com/proishan11/mux-rest/router"
+)
+
+var (
+	postRepository repository.PostRepo       = repository.NewFirestoreRepo()
+	postService    service.PostService       = service.NewPostService(postRepository)
+	postController controller.PostController = controller.NewPostController(postService)
+	httpRouter     router.Router             = router.NewMuxRouter()
 )
 
 func main() {
 	const port string = ":8080"
-	router := mux.NewRouter()
 
-	router.HandleFunc("/", func(response http.ResponseWriter, req *http.Request) {
+	httpRouter.GET("/", func(response http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(response, "Server up and running")
 	})
-	router.HandleFunc("/posts", getPosts).Methods("GET")
-	router.HandleFunc("/posts", addPost).Methods("POST")
-
-	log.Println("Server listening on port ", port)
-	log.Fatalln(http.ListenAndServe(port, router))
+	httpRouter.GET("/posts", postController.GetPosts)
+	httpRouter.POST("/posts", postController.AddPost)
+	httpRouter.SERVE(port)
 }
